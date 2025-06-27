@@ -1,41 +1,6 @@
 {
   "users": [
-    {
-      "username": "Harshad",
-      "password": "Harshad"
-    },
-    {
-      "username": "Harshad",
-      "password": "Harshad"
-    },
-    {
-      "username": "Harshad",
-      "password": "Harshad"
-    }
   ],
   "students": {
-    "Harshad": {
-      "semesters": [
-        {
-          "marks": [
-            73,
-            52,
-            67,
-            58,
-            80
-          ],
-          "sgpa": 6.6,
-          "timestamp": "2025-06-27T11:18:41.355786",
-          "subjects": [
-            "CS101",
-            "CS102",
-            "CS105",
-            "CS104",
-            "CS103"
-          ],
-          "total": 330
-        }
-      ]
-    }
   }
 }
