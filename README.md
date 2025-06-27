@@ -49,7 +49,7 @@ pip install -r requirements.txt
 ### 4. Run the Application  
 Start the application by running the main file:  
 ```bash
-python app.py
+python Report-card-Dashboard.py
 ```  
 
 ---
@@ -63,7 +63,7 @@ python app.py
 
 ## Project Structure  
 
-- **`app.py`**: The main Python file that runs the Flask application.  
+- **`Report-card-Dashboard.py`**: The main Python file that runs the Flask application.  
 - **`templates/`**: Contains HTML files for the front-end.  
 - **`static/`**: Contains CSS and JavaScript files for styling and interactivity.  
 - **`requirements.txt`**: Lists all required Python packages.  
