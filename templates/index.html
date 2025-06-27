@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Score Card</title>
+    <meta name="description" content="A modern, interactive platform to view your academic performance and growth.">
+    <meta name="author" content="harshadnikam">
+    <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/heroicons@2.0.13/24/solid/academic-cap.svg">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .fade-in { animation: fadeIn 1s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-up { animation: slideUp 0.7s cubic-bezier(.4,0,.2,1); }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Subtle animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            background: radial-gradient(circle at 20% 30%, #a7f3d0 0%, transparent 70%),
+                        radial-gradient(circle at 80% 70%, #60a5fa 0%, transparent 70%);
+            opacity: 0.25;
+            pointer-events: none;
+            animation: bgMove 12s linear infinite alternate;
+        }
+        @keyframes bgMove {
+            0% { background-position: 20% 30%, 80% 70%; }
+            100% { background-position: 30% 40%, 70% 60%; }
+        }
+        /* Glassmorphism for cards */
+        .glass {
+            background: rgba(255,255,255,0.7);
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+            backdrop-filter: blur(8px);
+            border-radius: 1.25rem;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+        /* Chatbot button */
+        #chatbotBtn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+            background: linear-gradient(135deg, #2563eb 60%, #06b6d4 100%);
+            color: #fff;
+            border-radius: 9999px;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 24px rgba(37,99,235,0.2);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+        #chatbotBtn:hover { background: linear-gradient(135deg, #1d4ed8 60%, #0ea5e9 100%); transform: scale(1.08); }
+        /* Chatbot window overlay */
+        #chatbotWindow {
+            position: fixed;
+            bottom: 5.5rem;
+            right: 2rem;
+            z-index: 50;
+            width: 350px;
+            max-width: 95vw;
+            background: rgba(255,255,255,0.95);
+            border-radius: 1.25rem;
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+            border: 1px solid #e0e7ef;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 0.4s;
+        }
+        @media (max-width: 500px) {
+            #chatbotWindow { right: 0.5rem; left: 0.5rem; width: auto; }
+        }
+        /* Social bar */
+        .social-bar a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px; height: 40px;
+            margin: 0 0.25rem;
+            border-radius: 9999px;
+            background: rgba(59,130,246,0.08);
+            color: #2563eb;
+            transition: background 0.2s, color 0.2s, transform 0.2s;
+            font-size: 1.3rem;
+        }
+        .social-bar a:hover { background: #2563eb; color: #fff; transform: scale(1.12); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-green-100 min-h-screen flex flex-col justify-between" aria-label="Student Score Card Site">
+    <!-- Hero Section -->
+    <header class="py-12 text-center relative z-10" aria-label="Site introduction">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-blue-700 mb-2 tracking-tight">Student Score Card</h1>
+        <p class="text-lg text-gray-700 max-w-xl mx-auto">A modern, interactive platform to view your academic performance, track your growth, and celebrate your achievements. Secure, beautiful, and made for students.</p>
+        <div class="mt-6 flex flex-col md:flex-row items-center justify-center gap-4">
+            <span class="inline-flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-full font-semibold text-sm shadow">100% Privacy</span>
+            <span class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-semibold text-sm shadow">Instant Results</span>
+            <span class="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full font-semibold text-sm shadow">Growth Analytics</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col items-center justify-center relative z-10" aria-label="Main content">
+        <!-- Login Form -->
+        <div id="loginSection" class="w-full max-w-md glass shadow-lg p-8 fade-in slide-up" aria-label="Login form">
+            <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">Login</h2>
+            <div id="errorMsg" class="hidden mb-4 p-3 rounded bg-red-100 text-red-700 text-center" role="alert" aria-live="assertive"></div>
+            <form id="loginForm" class="space-y-5" autocomplete="off">
+                <div>
+                    <label for="username" class="block text-gray-700 font-medium mb-1">Username</label>
+                    <input type="text" id="username" name="username" required autofocus class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 transition" placeholder="Enter your username" aria-label="Username">
+                </div>
+                <div>
+                    <label for="password" class="block text-gray-700 font-medium mb-1">Password</label>
+                    <input type="password" id="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 transition" placeholder="Enter your password" aria-label="Password">
+                </div>
+                <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition" aria-label="Login">Login</button>
+            </form>
+        </div>
+        <!-- Scorecard Section (hidden by default, shown after login) -->
+        <div id="scorecardSection" class="w-full max-w-2xl glass shadow-lg p-8 mt-8 fade-in slide-up hidden" aria-label="Student scorecard">
+            <!-- Filled by JS after login -->
+        </div>
+        <!-- Testimonials Carousel -->
+        <div class="w-full max-w-2xl mt-12" aria-label="Testimonials">
+            <div id="testimonialCarousel" class="relative glass shadow p-6 text-center text-gray-700">
+                <div class="italic text-lg" id="testimonialText">“This platform made tracking my progress so easy and fun!”</div>
+                <div class="mt-4 font-semibold text-blue-700" id="testimonialAuthor">— Priya, Student</div>
+                <button id="prevTestimonial" class="absolute left-2 top-1/2 -translate-y-1/2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center">&#8592;</button>
+                <button id="nextTestimonial" class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center">&#8594;</button>
+            </div>
+        </div>
+        <!-- Chatbot Assistant Button -->
+        <button id="chatbotBtn" title="Chat with Assistant" aria-label="Chatbot Assistant">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 14h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" /></svg>
+        </button>
+        <!-- Chatbot Window Overlay -->
+        <div id="chatbotWindow" class="glass" role="dialog" aria-modal="true" aria-label="Chatbot Assistant">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-100 to-cyan-100">
+                <span class="font-bold text-blue-700">Assistant</span>
+                <button id="closeChatbot" class="text-gray-500 hover:text-blue-700" aria-label="Close chat">&times;</button>
+            </div>
+            <div id="chatbotMessages" class="p-4 h-64 overflow-y-auto text-gray-700 text-sm flex flex-col gap-2">
+                <div class="self-start bg-blue-100 rounded-lg px-3 py-2 max-w-[80%]">Hi! I'm your assistant. How can I help you today?</div>
+            </div>
+            <form id="chatbotForm" class="flex items-center gap-2 p-3 border-t border-gray-200 bg-gradient-to-r from-blue-50 to-cyan-50">
+                <input id="chatbotInput" type="text" class="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 transition" placeholder="Type your question..." autocomplete="off" aria-label="Type your question">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition" aria-label="Send">Send</button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 bg-gradient-to-t from-green-100 to-blue-50 mt-10 relative z-10" aria-label="Site footer">
+        <div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-2">
+            <div class="social-bar flex gap-2">
+                <a href="https://x.com/not_harshad_19/" target="_blank" aria-label="X (Twitter)">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M22.162 2.667h-4.326l-5.836 7.98-5.836-7.98h-4.326l8.162 11.16-8.162 11.173h4.326l5.836-7.98 5.836 7.98h4.326l-8.162-11.173z"/></svg>
+                </a>
+                <a href="https://www.instagram.com/dev.harshhh19/" target="_blank" aria-label="Instagram">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.334 3.608 1.308.974.974 1.246 2.242 1.308 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.334 2.633-1.308 3.608-.974.974-2.242 1.246-3.608 1.308-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.334-3.608-1.308-.974-.974-1.246-2.242-1.308-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.334-2.633 1.308-3.608.974-.974 2.242-1.246 3.608-1.308 1.266-.058 1.646-.07 4.85-.07zm0-2.163c-3.259 0-3.667.012-4.947.07-1.276.058-2.687.334-3.678 1.325-.991.991-1.267 2.402-1.325 3.678-.058 1.28-.07 1.688-.07 4.947s.012 3.667.07 4.947c.058 1.276.334 2.687 1.325 3.678.991.991 2.402 1.267 3.678 1.325 1.28.058 1.688.07 4.947.07s3.667-.012 4.947-.07c1.276-.058 2.687-.334 3.678-1.325.991-.991 1.267-2.402 1.325-3.678.058-1.28.07-1.688.07-4.947s-.012-3.667-.07-4.947c-.058-1.276-.334-2.687-1.325-3.678-.991-.991-2.402-1.267-3.678-1.325-1.28-.058-1.688-.07-4.947-.07zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zm0 10.162a3.999 3.999 0 1 1 0-7.998 3.999 3.999 0 0 1 0 7.998zm6.406-11.845a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg>
+                </a>
+                <a href="https://in.linkedin.com/in/harshad-nikam-311734281" target="_blank" aria-label="LinkedIn">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.761 0 5-2.239 5-5v-14c0-2.761-2.239-5-5-5zm-11 19h-3v-10h3v10zm-1.5-11.268c-.966 0-1.75-.784-1.75-1.75s.784-1.75 1.75-1.75 1.75.784 1.75 1.75-.784 1.75-1.75 1.75zm13.5 11.268h-3v-5.604c0-1.337-.025-3.063-1.868-3.063-1.868 0-2.154 1.459-2.154 2.967v5.7h-3v-10h2.881v1.367h.041c.401-.761 1.381-1.563 2.841-1.563 3.039 0 3.6 2.001 3.6 4.601v5.595z"/></svg>
+                </a>
+                <a href="https://github.com/dev-harshhh18" target="_blank" aria-label="GitHub">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.084-.729.084-.729 1.205.084 1.84 1.236 1.84 1.236 1.07 1.834 2.809 1.304 3.495.997.108-.775.418-1.563.762-1.605-2.665-.305-5.466-1.334-5.466-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.553 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.803 5.624-5.475 5.921.43.371.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.218.694.825.576 4.765-1.587 8.2-6.084 8.2-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                </a>
+            </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-4 mb-2 text-sm">
+            <a href="#" class="text-blue-700 hover:underline" onclick="showPolicy('privacy')">Privacy Policy</a>
+            <a href="#" class="text-blue-700 hover:underline" onclick="showPolicy('security')">Security Policy</a>
+            <a href="#" class="text-blue-700 hover:underline" onclick="showPolicy('terms')">Terms of Service</a>
+            <a href="mailto:harshadnikam@example.com" class="text-blue-700 hover:underline">Contact Us</a>
+            <a href="#" class="text-blue-700 hover:underline" onclick="showFeedback()">Feedback</a>
+        </div>
+        <p class="text-gray-500 max-w-2xl mx-auto text-xs mb-2">
+            <strong>Disclaimer:</strong> This is a <b>virtual educational project</b>. It does not represent an actual report card. For official results, contact your institution. For more information or guidelines, please contact us.
+        </p>
+        <p class="text-gray-500">&copy; <span id="year"></span> Student Score Card. Created by❣️<span class="font-semibold text-blue-700">Harshad Nikam</span> </p>
+
+        <!-- Policy Modal (hidden by default) -->
+        <div id="policyModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+                <button onclick="closePolicy()" class="absolute top-2 right-3 text-gray-500 hover:text-blue-700 text-2xl" aria-label="Close">&times;</button>
+                <h2 id="policyTitle" class="text-xl font-bold mb-2"></h2>
+                <div id="policyContent" class="text-gray-700 text-sm"></div>
+            </div>
+        </div>
+        <!-- Feedback Modal (hidden by default) -->
+        <div id="feedbackModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
+                <button onclick="closeFeedback()" class="absolute top-2 right-3 text-gray-500 hover:text-blue-700 text-2xl" aria-label="Close">&times;</button>
+                <h2 class="text-xl font-bold mb-2">Feedback</h2>
+                <form onsubmit="submitFeedback(event)">
+                    <textarea class="w-full border rounded p-2 mb-2" rows="3" placeholder="Your feedback..." required></textarea>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Submit</button>
+                </form>
+                <div id="feedbackMsg" class="text-green-600 mt-2 hidden">Thank you for your feedback!</div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/scripts.js"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+        // Testimonials carousel logic
+        const testimonials = [
+            { text: '“This platform made tracking my progress so easy and fun!”', author: '— Priya, Student' },
+            { text: '“The growth chart is so motivating. Love the design!”', author: '— Rahul, Student' },
+            { text: '“Simple, secure, and beautiful. Highly recommended!”', author: '— Mrs. Sharma, Teacher' },
+            { text: '“I can finally see my academic journey at a glance.”', author: '— Aarav, Student' }
+        ];
+        let tIndex = 0;
+        function showTestimonial(idx) {
+            document.getElementById('testimonialText').textContent = testimonials[idx].text;
+            document.getElementById('testimonialAuthor').textContent = testimonials[idx].author;
+        }
+        document.getElementById('prevTestimonial').onclick = () => {
+            tIndex = (tIndex - 1 + testimonials.length) % testimonials.length;
+            showTestimonial(tIndex);
+        };
+        document.getElementById('nextTestimonial').onclick = () => {
+            tIndex = (tIndex + 1) % testimonials.length;
+            showTestimonial(tIndex);
+        };
+        function showPolicy(type) {
+            const modal = document.getElementById('policyModal');
+            const title = document.getElementById('policyTitle');
+            const content = document.getElementById('policyContent');
+            modal.classList.remove('hidden');
+            if (type === 'privacy') {
+                title.textContent = 'Privacy Policy';
+                content.innerHTML = 'We respect your privacy. No personal data is shared or sold. All data is stored securely and used only for educational demonstration purposes.';
+            } else if (type === 'security') {
+                title.textContent = 'Security Policy';
+                content.innerHTML = 'We use secure session handling and do not expose sensitive data. This is a demo project; do not use real credentials.';
+            } else if (type === 'terms') {
+                title.textContent = 'Terms of Service';
+                content.innerHTML = 'This platform is for educational use only. No rights or claims can be made based on the data shown here.';
+            }
+        }
+        function closePolicy() {
+            document.getElementById('policyModal').classList.add('hidden');
+        }
+        function showFeedback() {
+            document.getElementById('feedbackModal').classList.remove('hidden');
+        }
+        function closeFeedback() {
+            document.getElementById('feedbackModal').classList.add('hidden');
+        }
+        function submitFeedback(e) {
+            e.preventDefault();
+            document.querySelector('#feedbackModal textarea').value = '';
+            document.getElementById('feedbackMsg').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('feedbackModal').classList.add('hidden');
+                document.getElementById('feedbackMsg').classList.add('hidden');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

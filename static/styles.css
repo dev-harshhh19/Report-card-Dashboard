@@ -1,0 +1,64 @@
+/* Style for the progress ring */
+.progress-ring-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.progress-ring {
+    transform: rotate(-90deg); /* Rotate the circle to make the stroke start from top */
+}
+
+.progress-ring-background {
+    fill: none;
+    stroke: #e6e6e6;
+    stroke-width: 12;
+}
+
+.progress-ring-progress {
+    fill: none;
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke: #4caf50; /* Default color, will change dynamically */
+    transition: stroke-dashoffset 1s;
+}
+
+text {
+    font-size: 24px;
+    font-weight: bold;
+    fill: #333;
+}
+
+/* Badge for Grades */
+.badge {
+    padding: 10px;
+    font-size: 18px;
+    border-radius: 50px;
+    background-color: #ffc107;
+    color: white;
+}
+
+/* Custom Grades Color */
+.grade-a {
+    background-color: #28a745; /* Green for A */
+}
+.grade-b {
+    background-color: #17a2b8; /* Blue for B */
+}
+.grade-c {
+    background-color: #ffc107; /* Yellow for C */
+}
+.grade-d {
+    background-color: #dc3545; /* Red for D */
+}
+
+/* Dynamic Animations */
+@keyframes progress {
+    0% {
+        stroke-dashoffset: 339.292; /* Initial empty circle */
+    }
+    100% {
+        stroke-dashoffset: calc(339.292 - (339.292 * var(--percentage) / 100));
+    }
+}
