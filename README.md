@@ -28,7 +28,7 @@ Ensure you have the following installed on your system:
 ### 1. Clone the Repository  
 Use the following commands to clone the project and navigate to the project folder:  
 ```bash
-git clone https://github.com/dev-harshhh18/Report-card-Dashboard
+git clone https://github.com/dev-harshhh19/Report-card-Dashboard
 cd Report-card-Dashboard
 ```  
 
