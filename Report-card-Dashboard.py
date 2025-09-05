@@ -56,37 +56,32 @@ def login():
     if 'students' not in data:
         data['students'] = {}
 
-    # Store user credentials
-    data['users'].append({'username': username, 'password': password})
+    # Check if user exists
+    user_record = next((user for user in data['users'] if user['username'] == username), None)
 
     now = datetime.now()
-    if username not in data['students']:
-        # New user: create first semester
-        semesters = [new_semester_result()]
-    else:
-        # MIGRATION: If old format, convert to new format
+    if user_record:
+        # Existing user: verify password
+        if user_record['password'] != password:
+            print(f"LOGIN ERROR: Invalid password for user '{username}'")
+            return jsonify({'error': 'Invalid username or password.'}), 401
+
+        # MIGRATION and semester update logic for existing user
         student_rec = data['students'][username]
-        if 'semesters' not in student_rec:
-            # Fallback: assign random subjects for old data
+        if 'semesters' not in student_rec: # Fallback for old data
             marks = student_rec.get('marks', [random.randint(50, 100) for _ in range(5)])
             subjects = random.sample(CS_SUBJECTS, 5)
             sgpa = student_rec.get('sgpa', round(sum(marks) / 5 / 10, 2))
             total = sum(marks)
-            semesters = [{
-                'subjects': subjects,
-                'marks': marks,
-                'sgpa': sgpa,
-                'total': total,
-                'timestamp': datetime.now().isoformat()
-            }]
+            semesters = [{'subjects': subjects, 'marks': marks, 'sgpa': sgpa, 'total': total, 'timestamp': now.isoformat()}]
         else:
             semesters = student_rec['semesters']
-            # MIGRATION: Ensure every semester has 'subjects' and 'total'
-            for sem in semesters:
+            for sem in semesters: # Migration for older semesters
                 if 'subjects' not in sem or not isinstance(sem['subjects'], list):
                     sem['subjects'] = random.sample(CS_SUBJECTS, 5)
                 if 'total' not in sem:
                     sem['total'] = sum(sem.get('marks', [0,0,0,0,0]))
+
         # Check if a new semester should be added
         last_sem = semesters[-1]
         last_date = datetime.fromisoformat(last_sem['timestamp'])
@@ -94,9 +89,14 @@ def login():
             semesters.append(new_semester_result())
             last_date = datetime.fromisoformat(semesters[-1]['timestamp'])
 
-    data['students'][username] = {
-        'semesters': semesters
-    }
+        data['students'][username]['semesters'] = semesters
+
+    else:
+        # New user: create user and first semester
+        data['users'].append({'username': username, 'password': password})
+        semesters = [new_semester_result()]
+        data['students'][username] = { 'semesters': semesters }
+
     save_data(data)
     session['username'] = username
     print(f"LOGIN SUCCESS: session={dict(session)}")
