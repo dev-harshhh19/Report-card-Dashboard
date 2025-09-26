@@ -120,6 +120,21 @@
                     <label for="password" class="block text-gray-700 font-medium mb-1">Password</label>
                     <input type="password" id="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 transition" placeholder="Enter your password" aria-label="Password">
                 </div>
+                <div>
+                    <label for="current_semester" class="block text-gray-700 font-medium mb-1">Current Semester</label>
+                    <select id="current_semester" name="current_semester" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 transition" aria-label="Current Semester">
+                        <option value="">Select your current semester</option>
+                        <option value="1">1st Semester</option>
+                        <option value="2">2nd Semester</option>
+                        <option value="3">3rd Semester</option>
+                        <option value="4">4th Semester</option>
+                        <option value="5">5th Semester</option>
+                        <option value="6">6th Semester</option>
+                        <option value="7">7th Semester</option>
+                        <option value="8">8th Semester</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Select your current semester. We'll generate your academic history accordingly.</p>
+                </div>
                 <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transition" aria-label="Login">Login</button>
             </form>
         </div>
@@ -180,6 +195,26 @@
             <a href="#" class="text-blue-700 hover:underline" onclick="showPolicy('terms')">Terms of Service</a>
             <a href="mailto:harshadnikam@example.com" class="text-blue-700 hover:underline">Contact Us</a>
             <a href="#" class="text-blue-700 hover:underline" onclick="showFeedback()">Feedback</a>
+        </div>
+        
+        <!-- Donation Section -->
+        <div class="mb-4 flex justify-center">
+            <div class="glass px-6 py-3 text-center">
+                <p class="text-sm text-gray-600 mb-2">❤️ Enjoying this project? Support the developer!</p>
+                <div class="flex justify-center gap-3">
+                    <a href="https://www.buymeacoffee.com/dev.harhhh" target="_blank" 
+                       class="inline-flex items-center px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold rounded-lg transition shadow-sm"
+                       aria-label="Buy me a coffee">
+                        ☕ Buy me a coffee
+                    </a>
+                    <a href="https://github.com/sponsors/dev-harshhh19" target="_blank" 
+                       class="inline-flex items-center px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-lg transition shadow-sm"
+                       aria-label="Sponsor on GitHub">
+                        Sponsor
+                    </a>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Your support helps keep this project free and open source!</p>
+            </div>
         </div>
         <p class="text-gray-500 max-w-2xl mx-auto text-xs mb-2">
             <strong>Disclaimer:</strong> This is a <b>virtual educational project</b>. It does not represent an actual report card. For official results, contact your institution. For more information or guidelines, please contact us.

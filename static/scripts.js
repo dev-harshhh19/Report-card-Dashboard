@@ -78,7 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ).join('');
         scorecardSection.innerHTML = `
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-blue-700">Welcome, <span class="capitalize">${student.username}</span></h2>
+                <div>
+                    <h2 class="text-2xl font-bold text-blue-700">Welcome, <span class="capitalize">${student.username}</span></h2>
+                    <p class="text-gray-600">Current Semester: <span class="font-semibold text-blue-600">${student.current_semester}</span></p>
+                </div>
                 <button id="logoutBtn" class="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition" aria-label="Logout">Logout</button>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

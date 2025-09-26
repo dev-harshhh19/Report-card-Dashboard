@@ -14,3 +14,9 @@ VENV/
 
 # Data files
 data.json
+test_data.json
+test_data.csv
+test_data.xlsx
+test_data.db
+test_database.py
+report_card_demo.db

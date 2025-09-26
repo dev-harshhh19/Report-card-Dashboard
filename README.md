@@ -1,13 +1,7 @@
 # Student Score Card Web App
 
 A modern, interactive web application for students to securely track, visualize, and analyze their academic progress semester by semester.  
-**Built with Flask, Tailwind CSS, Chart.js, and a professional, accessible UI.**
-
----
-
-**This project was built using Vibe Coding.**
-
----
+**Built with Flask, PostgreSQL (NeonDB), Tailwind CSS, Chart.js, and a professional, accessible UI.**
 
 # Installation Guide for Student Marks Calculator  
 
@@ -20,6 +14,7 @@ Ensure you have the following installed on your system:
 1. **Python**: Version 3.7 or later. Download it from [python.org](https://www.python.org/).  
 2. **Pip**: Python package manager (comes pre-installed with Python).  
 3. **Git**: To clone the repository. Download from [git-scm.com](https://git-scm.com/).  
+4. **NeonDB Account**: Sign up at [Neon.tech](https://neon.tech) for PostgreSQL database hosting.
 
 ---
 
@@ -40,13 +35,22 @@ source venv/bin/activate  # For Linux/Mac
 venv\Scripts\activate     # For Windows  
 ```  
 
-### 3. Install Required Dependencies  
+### 3. Set Up Database Configuration
+Configure your PostgreSQL database connection:
+```bash
+cp .env.example .env
+# Edit .env file with your NeonDB connection string
+```
+
+Update the `DATABASE_URL` in your `.env` file with your actual NeonDB connection string.
+
+### 4. Install Required Dependencies  
 Install all necessary Python libraries using the `requirements.txt` file:  
 ```bash
 pip install -r requirements.txt
 ```  
 
-### 4. Run the Application  
+### 5. Run the Application  
 Start the application by running the main file:  
 ```bash
 python Report-card-Dashboard.py
@@ -63,10 +67,13 @@ python Report-card-Dashboard.py
 
 ## Project Structure  
 
-- **`Report-card-Dashboard.py`**: The main Python file that runs the Flask application.  
+- **`Report-card-Dashboard.py`**: The main Python file that runs the Flask application with PostgreSQL support.  
+- **`models.py`**: Database models for Users, Students, and Semesters using SQLAlchemy.
+- **`database.py`**: Database configuration and connection management.
 - **`templates/`**: Contains HTML files for the front-end.  
 - **`static/`**: Contains CSS and JavaScript files for styling and interactivity.  
-- **`requirements.txt`**: Lists all required Python packages.  
+- **`requirements.txt`**: Lists all required Python packages including database dependencies.
+- **`.env`**: Environment configuration file (create from .env.example).  
 
 ---
 
@@ -88,3 +95,6 @@ We welcome contributions! Follow these steps:
 ---
 
 Enjoy building and enhancing this project!
+---
+## 💰 You can help me by Donating
+  [![BuyMeACoffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/dev.harhhh) [![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/HarshadNikam388) 
