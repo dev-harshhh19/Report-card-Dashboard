@@ -1,14 +1,26 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from database import create_app, init_db, create_tables
 from models import db, User, Student, Semester
-import random
-import hashlib
-import secrets
+from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import time
 from functools import wraps
 from datetime import datetime, timedelta
 import os
+# pyrefly: ignore [missing-import]
+import google.generativeai as genai
+from flask_limiter import Limiter
+
+# Setup Gemini AI
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if gemini_api_key:
+    genai.configure(api_key=gemini_api_key)
+    gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+else:
+    gemini_model = None
 
 # Initialize Flask app with database
 app = create_app()
@@ -27,11 +39,6 @@ if os.getenv('FLASK_ENV') == 'production':
 with app.app_context():
     create_tables(app, db)
 
-# Constants
-SEMESTER_MONTHS = 6
-MAX_SEMESTERS = 8
-CS_SUBJECTS = ['CS101', 'CS102', 'CS103', 'CS104', 'CS105']
-
 # Security constants
 MIN_PASSWORD_LENGTH = 8
 MAX_LOGIN_ATTEMPTS = 5
@@ -42,20 +49,10 @@ failed_attempts = {}
 
 # Security utility functions
 def hash_password(password):
-    """Hash password using SHA-256 with salt"""
-    salt = secrets.token_hex(16)
-    pwd_hash = hashlib.sha256((password + salt).encode()).hexdigest()
-    return f"{salt}:{pwd_hash}"
+    return generate_password_hash(password)
 
 def verify_password(stored_password, provided_password):
-    """Verify password against stored hash"""
-    try:
-        salt, stored_hash = stored_password.split(':')
-        pwd_hash = hashlib.sha256((provided_password + salt).encode()).hexdigest()
-        return pwd_hash == stored_hash
-    except ValueError:
-        # Handle legacy plain text passwords (migration case)
-        return stored_password == provided_password
+    return check_password_hash(stored_password, provided_password)
 
 def validate_password_strength(password):
     """Validate password meets security requirements"""
@@ -78,10 +75,7 @@ def sanitize_input(input_string, max_length=100):
     if not input_string:
         return ""
     
-    # Remove potentially harmful characters
     sanitized = re.sub(r'[<>"\';()&+]', '', str(input_string))
-    
-    # Limit length
     return sanitized[:max_length].strip()
 
 def validate_username(username):
@@ -107,7 +101,6 @@ def check_rate_limit(username):
     if username in failed_attempts:
         attempts, last_attempt = failed_attempts[username]
         
-        # Reset attempts if lockout period has passed
         if current_time - last_attempt > LOCKOUT_DURATION:
             del failed_attempts[username]
             return True, "Rate limit reset"
@@ -121,7 +114,6 @@ def check_rate_limit(username):
 def record_failed_attempt(username):
     """Record a failed login attempt"""
     current_time = time.time()
-    
     if username in failed_attempts:
         attempts, _ = failed_attempts[username]
         failed_attempts[username] = (attempts + 1, current_time)
@@ -132,17 +124,6 @@ def clear_failed_attempts(username):
     """Clear failed attempts for successful login"""
     if username in failed_attempts:
         del failed_attempts[username]
-
-def validate_semester(semester_str):
-    """Validate semester input"""
-    try:
-        semester = int(semester_str)
-        if 1 <= semester <= 8:
-            return True, semester
-        else:
-            return False, "Semester must be between 1 and 8"
-    except (ValueError, TypeError):
-        return False, "Invalid semester format"
 
 def require_login(f):
     """Decorator to require login for protected routes"""
@@ -156,15 +137,14 @@ def require_login(f):
 def get_client_ip():
     """Get client IP address for logging"""
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
-        return request.environ['REMOTE_ADDR']
+        return request.environ.get('REMOTE_ADDR', 'Unknown')
     else:
-        return request.environ['HTTP_X_FORWARDED_FOR']
+        return request.environ.get('HTTP_X_FORWARDED_FOR')
 
 def log_security_event(event_type, username=None, details=None):
     """Log security events (in production, use proper logging)"""
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
     ip = get_client_ip()
-    
     log_entry = {
         'timestamp': timestamp,
         'event': event_type,
@@ -172,58 +152,19 @@ def log_security_event(event_type, username=None, details=None):
         'ip': ip,
         'details': details
     }
-    
-    # In production, write to secure log file or monitoring system
     print(f"SECURITY LOG: {log_entry}")
-
-def create_new_semester_data(semester_number):
-    """Create new semester data"""
-    marks = [random.randint(50, 100) for _ in range(5)]
-    subjects = random.sample(CS_SUBJECTS, 5)
-    return subjects, marks
-
-def create_historical_semesters(student_id, current_semester):
-    """Create historical semester data for a student based on their current semester"""
-    semesters = []
-    
-    for sem_num in range(1, current_semester + 1):
-        subjects, marks = create_new_semester_data(sem_num)
-        semester = Semester(student_id=student_id, semester_number=sem_num)
-        semester.set_subjects(subjects)
-        semester.set_marks(marks)
-        
-        # Set creation date to simulate past semesters (6 months apart)
-        if sem_num < current_semester:
-            months_ago = (current_semester - sem_num) * 6
-            semester.created_at = datetime.now() - timedelta(days=months_ago * 30)
-        
-        semesters.append(semester)
-    
-    return semesters
-
-def get_or_create_student(username):
-    """Get existing student or create new one"""
-    user = User.query.filter_by(username=username).first()
-    if user and user.student:
-        return user.student
-    elif user:
-        # User exists but no student record
-        student = Student(user_id=user.id)
-        db.session.add(student)
-        db.session.commit()
-        return student
-    return None
 
 @app.route('/', methods=['GET'])
 def index():
+    # If user is already logged in based on session, we can render normal template
+    # JS will fetch dashboard
     return render_template('index.html')
 
 @app.route('/login', methods=['POST'])
 def login():
     # Get and sanitize inputs
     username = sanitize_input(request.form.get('username'), 30)
-    password = request.form.get('password')  # Don't sanitize password
-    current_semester = sanitize_input(request.form.get('current_semester'), 2)
+    password = request.form.get('password')
     
     # Validate inputs
     if not username or not password:
@@ -241,18 +182,9 @@ def login():
     if not rate_limit_ok:
         log_security_event('RATE_LIMITED', username, rate_msg)
         return jsonify({'error': rate_msg}), 429
-    
-    # Validate semester input
-    semester_valid, semester_result = validate_semester(current_semester)
-    if not semester_valid:
-        log_security_event('LOGIN_FAILED', username, f'Invalid semester: {semester_result}')
-        return jsonify({'error': semester_result}), 400
-    
-    current_semester = int(semester_result)  # Ensure it's an integer
 
     # Check if user exists
     user = User.query.filter_by(username=username).first()
-    now = datetime.now()
     
     if user:
         # Existing user: verify password
@@ -263,41 +195,6 @@ def login():
         
         # Clear failed attempts on successful login
         clear_failed_attempts(username)
-        
-        # Get or create student record
-        student = user.student
-        if not student:
-            student = Student(user_id=user.id, current_semester=current_semester)
-            db.session.add(student)
-            db.session.flush()
-            
-            # Create historical semesters based on current semester
-            historical_semesters = create_historical_semesters(student.id, current_semester)
-            for semester in historical_semesters:
-                db.session.add(semester)
-        else:
-            # Update current semester if different
-            if student.current_semester != current_semester:
-                student.current_semester = current_semester
-                
-                # Check if we need to add more semesters
-                existing_count = student.semesters.count()
-                if current_semester > existing_count:
-                    for sem_num in range(existing_count + 1, current_semester + 1):
-                        subjects, marks = create_new_semester_data(sem_num)
-                        new_semester = Semester(student_id=student.id, semester_number=sem_num)
-                        new_semester.set_subjects(subjects)
-                        new_semester.set_marks(marks)
-                        
-                        # Set creation date for past semesters
-                        if sem_num < current_semester:
-                            months_ago = (current_semester - sem_num) * 6
-                            new_semester.created_at = datetime.now() - timedelta(days=months_ago * 30)
-                        
-                        db.session.add(new_semester)
-        
-        db.session.commit()
-        
     else:
         # New user registration: validate password strength
         password_valid, password_msg = validate_password_strength(password)
@@ -313,25 +210,59 @@ def login():
         db.session.add(user)
         db.session.flush()
         
-        student = Student(user_id=user.id, current_semester=current_semester)
+        student = Student(user_id=user.id, current_semester=0)
         db.session.add(student)
-        db.session.flush()
-        
-        # Create historical semesters
-        historical_semesters = create_historical_semesters(student.id, current_semester)
-        for semester in historical_semesters:
-            db.session.add(semester)
-        
         db.session.commit()
-        log_security_event('USER_REGISTERED', username, f'New user registered with semester {current_semester}')
+        log_security_event('USER_REGISTERED', username, 'New user registered')
     
     # Set secure session
     session['username'] = username
     session['login_time'] = datetime.now().isoformat()
     session.permanent = True
     
-    log_security_event('LOGIN_SUCCESS', username, f'Logged in with semester {current_semester}')
+    log_security_event('LOGIN_SUCCESS', username, 'Logged in')
     return ('', 204)
+
+@app.route('/add_semester', methods=['POST'])
+@require_login
+def add_semester():
+    username = session.get('username')
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.student:
+        return jsonify({'error': 'Student data not found'}), 404
+        
+    data = request.get_json()
+    semester_num = data.get('semester_number')
+    subjects = data.get('subjects')
+    marks = data.get('marks')
+    
+    if not semester_num or not subjects or not marks or len(subjects) != len(marks):
+        return jsonify({'error': 'Invalid data provided'}), 400
+        
+    try:
+        semester_num = int(semester_num)
+        marks = [int(m) for m in marks]
+    except ValueError:
+        return jsonify({'error': 'Marks and semester must be numbers'}), 400
+        
+    # Check if semester already exists
+    existing = Semester.query.filter_by(student_id=user.student.id, semester_number=semester_num).first()
+    if existing:
+        return jsonify({'error': f'Semester {semester_num} already exists'}), 400
+        
+    semester = Semester(student_id=user.student.id, semester_number=semester_num)
+    semester.set_subjects(subjects)
+    semester.set_marks(marks)
+    
+    # Update student's current semester if this is higher
+    if user.student.current_semester < semester_num:
+        user.student.current_semester = semester_num
+        
+    db.session.add(semester)
+    db.session.commit()
+    
+    log_security_event('SEMESTER_ADDED', username, f'Added semester {semester_num}')
+    return jsonify({'success': True}), 200
 
 @app.route('/dashboard', methods=['GET'])
 @require_login
@@ -349,8 +280,15 @@ def dashboard():
     semesters = student.get_all_semesters()
     
     if not semesters:
-        log_security_event('DASHBOARD_ERROR', username, 'No semester data found')
-        return jsonify({'error': 'No semester data found'}), 404
+        # Return empty dashboard payload instead of 404 so UI can show "Add your first semester"
+        return jsonify({
+            'username': username,
+            'current_semester': student.current_semester,
+            'semesters': [],
+            'marks': [],
+            'sgpa': 0,
+            'growth': []
+        })
     
     # Get latest semester data
     latest_semester = semesters[-1]
@@ -370,6 +308,30 @@ def dashboard():
     if request.args.get('json') == '1':
         return jsonify(student_data)
     return render_template('dashboard.html', student=student_data)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    if not gemini_model:
+        return jsonify({"error": "Chat is currently disabled. Missing API key."}), 503
+
+    user_message = request.json.get('message')
+    if not user_message:
+        return jsonify({"error": "Message is required."}), 400
+
+    system_instruction = (
+        "You are an AI assistant exclusively designed for the Academic Survival Planner portfolio project created by Harshad Nikam. "
+        "Your sole purpose is to answer questions related to this specific application, its features, how to use it, and its architecture. "
+        "If a user asks about anything unrelated to this specific app (like coding help, general knowledge, math, etc.), you MUST politely decline and remind them of your limitation to only discuss the Academic Survival Planner."
+    )
+
+    try:
+        response = gemini_model.generate_content(
+            system_instruction + "\nUser question: " + user_message
+        )
+        return jsonify({"response": response.text})
+    except Exception as e:
+        app.logger.error(f"Gemini API error: {e}")
+        return jsonify({"error": "The assistant is currently unavailable."}), 500
 
 @app.route('/logout', methods=['POST'])
 @require_login
@@ -405,18 +367,6 @@ def add_security_headers(response):
     return response
 
 if __name__ == '__main__':
-    # Production should never use debug=True
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     port = int(os.getenv('PORT', 5000))
-    
-    if debug_mode:
-        print("\n🔒 SECURITY FEATURES ENABLED:")
-        print("✅ Password hashing with SHA-256 + salt")
-        print("✅ Input sanitization and validation")
-        print("✅ Rate limiting (5 attempts, 5-min lockout)")
-        print("✅ Secure session management")
-        print("✅ Security headers (CSP, HSTS, XSS protection)")
-        print("✅ Comprehensive logging")
-        print("\n🚀 Application starting with security enhancements...\n")
-    
     app.run(host='0.0.0.0', port=port, debug=debug_mode)
